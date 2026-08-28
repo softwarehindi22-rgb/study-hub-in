@@ -1,5 +1,4 @@
 "use client";
-
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -7,171 +6,107 @@ import { supabase } from "../lib/supabase";
 
 export default function HomePage() {
   const router = useRouter();
-
   const [courses, setCourses] = useState([]);
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [darkMode, setDarkMode] = useState(false);
 
   useEffect(() => {
-    let mounted = true;
+    const isDark = document.documentElement.classList.contains("dark");
+    setDarkMode(isDark);
+  }, []);
 
-    async function loadPage() {
-      try {
-        // Get currently logged-in user
-        const {
-          data: { user },
-          error: userError,
-        } = await supabase.auth.getUser();
+  function toggleDarkMode() {
+    const next = !darkMode;
+    setDarkMode(next);
+    document.documentElement.classList.toggle("dark", next);
+    localStorage.setItem("theme", next ? "dark" : "light");
+  }
 
-        if (userError) {
-          console.error("User error:", userError);
-        }
-
-        if (!user) {
-          router.replace("/login");
-          return;
-        }
-
-        // Load the user's profile and role
-        const {
-          data: profileData,
-          error: profileError,
-        } = await supabase
-          .from("profiles")
-          .select("id, full_name, role")
-          .eq("id", user.id)
-          .maybeSingle();
-
-        if (profileError) {
-          console.error("Profile fetch error:", profileError);
-        }
-
-        // Load published courses
-        const {
-          data: courseData,
-          error: courseError,
-        } = await supabase
-          .from("courses")
-          .select("*")
-          .eq("status", "published")
-          .order("created_at", { ascending: false });
-
-        if (courseError) {
-          console.error("Courses fetch error:", courseError);
-        }
-
-        if (!mounted) return;
-
-        setProfile(profileData || null);
-        setCourses(courseData || []);
-      } catch (error) {
-        console.error("Homepage error:", error);
-      } finally {
-        if (mounted) {
-          setLoading(false);
-        }
+  useEffect(() => {
+    async function load() {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        router.push("/login");
+        return;
       }
+
+      const { data: profileData } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("id", user.id)
+        .maybeSingle();
+      setProfile(profileData);
+
+      const { data: courseData } = await supabase
+        .from("courses")
+        .select("*")
+        .eq("status", "published")
+        .order("created_at", { ascending: false });
+      setCourses(courseData || []);
+      setLoading(false);
     }
-
-    loadPage();
-
-    return () => {
-      mounted = false;
-    };
+    load();
   }, [router]);
 
   async function handleSignOut() {
     await supabase.auth.signOut();
-    router.replace("/login");
+    router.push("/login");
   }
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <p className="text-gray-400">Loading...</p>
+      <div className="min-h-screen flex items-center justify-center text-gray-400 dark:bg-[#14141f]">
+        Loading...
       </div>
     );
   }
 
-  const isAdmin = profile?.role === "admin";
-
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Navigation */}
-      <nav className="bg-white shadow-sm px-6 py-4">
-        <div className="max-w-5xl mx-auto flex items-center justify-between">
-          <Link
-            href="/"
-            className="text-xl font-bold text-ink"
+    <div className="min-h-screen dark:bg-[#14141f]">
+      <nav className="bg-white dark:bg-[#1c1c2b] shadow-sm px-6 py-4 flex justify-between items-center">
+        <h1 className="text-xl font-bold text-ink dark:text-gray-100">Study Hub</h1>
+        <div className="flex items-center gap-4">
+          <button
+            onClick={toggleDarkMode}
+            className="text-sm text-gray-500 dark:text-gray-300 border rounded-full px-3 py-1 dark:border-gray-600"
           >
-            Study Hub
-          </Link>
-
-          <div className="flex items-center gap-5">
-            {isAdmin && (
-              <Link
-                href="/admin"
-                className="text-sm font-semibold text-accent hover:underline"
-              >
-                Admin
-              </Link>
-            )}
-
-            <button
-              onClick={handleSignOut}
-              className="text-sm text-gray-500 hover:text-gray-700"
-            >
-              Sign out
-            </button>
-          </div>
+            {darkMode ? "☀️ Light" : "🌙 Dark"}
+          </button>
+          {profile?.role === "admin" && (
+            <Link href="/admin" className="text-sm text-accent font-medium">
+              Admin
+            </Link>
+          )}
+          <button onClick={handleSignOut} className="text-sm text-gray-500 dark:text-gray-300">
+            Sign out
+          </button>
         </div>
       </nav>
 
-      {/* Main content */}
-      <main className="max-w-5xl mx-auto px-6 py-10">
-        <div className="mb-8">
-          <h2 className="text-2xl font-bold text-ink">
-            Welcome{profile?.full_name ? `, ${profile.full_name}` : ""}
-          </h2>
-
-          <p className="text-gray-500 mt-1">
-            Continue your learning.
-          </p>
-        </div>
-
-        <h3 className="text-lg font-semibold text-ink mb-4">
-          Your Courses
-        </h3>
-
-        {courses.length === 0 ? (
-          <div className="bg-white rounded-xl shadow-sm p-8 text-center">
-            <p className="text-gray-400 text-sm">
-              No courses published yet.
-            </p>
-
-            {isAdmin && (
-              <Link
-                href="/admin"
-                className="inline-block mt-4 text-sm font-medium text-accent hover:underline"
-              >
-                Go to Admin and add a course
-              </Link>
-            )}
+      <main className="max-w-4xl mx-auto px-6 py-8">
+        {profile?.full_name && (
+          <div className="mb-6">
+            <h2 className="text-lg font-semibold text-ink dark:text-gray-100">
+              Welcome, {profile.full_name}
+            </h2>
+            <p className="text-sm text-gray-500 dark:text-gray-400">Continue your learning.</p>
           </div>
+        )}
+        <h2 className="text-lg font-semibold text-ink dark:text-gray-100 mb-4">Your Courses</h2>
+        {courses.length === 0 ? (
+          <p className="text-gray-400 text-sm">No courses published yet.</p>
         ) : (
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
+          <div className="grid sm:grid-cols-2 gap-4">
             {courses.map((course) => (
               <Link
                 key={course.id}
                 href={`/courses/${course.slug}`}
-                className="block bg-white rounded-xl shadow-sm p-5 hover:shadow-md transition"
+                className="block bg-white dark:bg-[#1c1c2b] rounded-xl shadow-sm p-5 hover:shadow-md transition"
               >
-                <h4 className="font-semibold text-ink">
-                  {course.title}
-                </h4>
-
+                <h3 className="font-semibold text-ink dark:text-gray-100">{course.title}</h3>
                 {course.description && (
-                  <p className="text-sm text-gray-500 mt-2 line-clamp-3">
+                  <p className="text-sm text-gray-500 dark:text-gray-400 mt-1 line-clamp-2">
                     {course.description}
                   </p>
                 )}
