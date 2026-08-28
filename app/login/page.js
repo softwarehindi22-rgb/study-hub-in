@@ -8,7 +8,7 @@ export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
-  const [mode, setMode] = useState("signin"); // signin | signup
+  const [mode, setMode] = useState("signin");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -34,10 +34,10 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4">
-      <div className="w-full max-w-sm bg-white rounded-2xl shadow-md p-8">
-        <h1 className="text-2xl font-bold text-ink mb-1">Study Hub</h1>
-        <p className="text-sm text-gray-500 mb-6">
+    <div className="min-h-screen flex items-center justify-center px-4 dark:bg-[#14141f]">
+      <div className="w-full max-w-sm bg-white dark:bg-[#1c1c2b] rounded-2xl shadow-md p-8">
+        <h1 className="text-2xl font-bold text-ink dark:text-gray-100 mb-1">Study Hub</h1>
+        <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
           {mode === "signin" ? "Sign in to continue" : "Create your account"}
         </p>
 
@@ -48,7 +48,7 @@ export default function LoginPage() {
               placeholder="Full name"
               value={fullName}
               onChange={(e) => setFullName(e.target.value)}
-              className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
+              className="w-full border dark:border-gray-600 dark:bg-[#14141f] dark:text-gray-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
               required
             />
           )}
@@ -57,7 +57,7 @@ export default function LoginPage() {
             placeholder="Email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
+            className="w-full border dark:border-gray-600 dark:bg-[#14141f] dark:text-gray-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
             required
           />
           <input
@@ -65,7 +65,7 @@ export default function LoginPage() {
             placeholder="Password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
+            className="w-full border dark:border-gray-600 dark:bg-[#14141f] dark:text-gray-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
             required
             minLength={6}
           />
