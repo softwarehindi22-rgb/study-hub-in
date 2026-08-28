@@ -8,14 +8,12 @@ function toEmbedUrl(url) {
   try {
     const u = new URL(url);
     if (u.hostname.includes("youtube.com") || u.hostname.includes("youtu.be")) {
-      // Live stream format: youtube.com/live/VIDEO_ID
       if (u.pathname.startsWith("/live/")) {
         const videoId = u.pathname.split("/")[2];
         return `https://www.youtube.com/embed/${videoId}`;
       }
-      // Channel "always live" link: youtube.com/@channel/live or /channel/ID/live
       if (u.pathname.endsWith("/live")) {
-        return url; // no reliable embed without channel ID lookup; open directly
+        return url;
       }
       let videoId = u.searchParams.get("v");
       if (u.hostname.includes("youtu.be")) videoId = u.pathname.slice(1);
@@ -37,7 +35,7 @@ function toEmbedUrl(url) {
 function isEmbeddable(url) {
   try {
     const u = new URL(url);
-    if ((u.hostname.includes("youtube.com")) && u.pathname.endsWith("/live") && !u.pathname.startsWith("/live/")) {
+    if (u.hostname.includes("youtube.com") && u.pathname.endsWith("/live") && !u.pathname.startsWith("/live/")) {
       return false;
     }
     return true;
@@ -49,10 +47,12 @@ function isEmbeddable(url) {
 export default function CoursePage() {
   const router = useRouter();
   const params = useParams();
+  const [userId, setUserId] = useState(null);
   const [course, setCourse] = useState(null);
   const [chapters, setChapters] = useState([]);
   const [resourcesByChapter, setResourcesByChapter] = useState({});
   const [activeResource, setActiveResource] = useState(null);
+  const [completedIds, setCompletedIds] = useState(new Set());
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -62,6 +62,7 @@ export default function CoursePage() {
         router.push("/login");
         return;
       }
+      setUserId(user.id);
 
       const { data: courseData } = await supabase
         .from("courses")
@@ -99,15 +100,38 @@ export default function CoursePage() {
           grouped[r.chapter_id].push(r);
         });
         setResourcesByChapter(grouped);
+
+        const { data: progressData } = await supabase
+          .from("progress")
+          .select("resource_id")
+          .eq("user_id", user.id);
+        setCompletedIds(new Set((progressData || []).map((p) => p.resource_id)));
       }
       setLoading(false);
     }
     load();
   }, [params.slug, router]);
 
+  async function toggleComplete(resourceId, e) {
+    e.stopPropagation();
+    if (!userId) return;
+    const isDone = completedIds.has(resourceId);
+    if (isDone) {
+      await supabase.from("progress").delete().eq("user_id", userId).eq("resource_id", resourceId);
+      setCompletedIds((prev) => {
+        const next = new Set(prev);
+        next.delete(resourceId);
+        return next;
+      });
+    } else {
+      await supabase.from("progress").insert({ user_id: userId, resource_id: resourceId });
+      setCompletedIds((prev) => new Set(prev).add(resourceId));
+    }
+  }
+
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center text-gray-400 dark:bg-[#14141f]">
+      <div className="min-h-screen flex items-center justify-center text-gray-400 dark:bg-[#0e0e17]">
         Loading...
       </div>
     );
@@ -115,19 +139,29 @@ export default function CoursePage() {
 
   if (!course) {
     return (
-      <div className="min-h-screen flex items-center justify-center text-gray-400 dark:bg-[#14141f]">
+      <div className="min-h-screen flex items-center justify-center text-gray-400 dark:bg-[#0e0e17]">
         Course not found.
       </div>
     );
   }
 
+  const totalResources = Object.values(resourcesByChapter).flat().length;
+  const donePct = totalResources > 0 ? Math.round((completedIds.size / totalResources) * 100) : 0;
+
   return (
-    <div className="min-h-screen dark:bg-[#14141f]">
-      <nav className="bg-white dark:bg-[#1c1c2b] shadow-sm px-6 py-4 flex items-center gap-4">
-        <Link href="/" className="text-sm text-accent">
-          ← Back
-        </Link>
-        <h1 className="text-lg font-bold text-ink dark:text-gray-100">{course.title}</h1>
+    <div className="min-h-screen dark:bg-[#0e0e17]">
+      <nav className="bg-white/80 dark:bg-[#1c1c2b]/80 backdrop-blur-md shadow-sm px-6 py-4 sticky top-0 z-10">
+        <div className="flex items-center gap-4 mb-2">
+          <Link href="/" className="text-sm text-accent font-semibold">
+            ← Back
+          </Link>
+          <h1 className="text-lg font-extrabold text-ink dark:text-gray-100">{course.title}</h1>
+        </div>
+        {totalResources > 0 && (
+          <div className="progress-track h-2 w-full">
+            <div className="progress-fill" style={{ width: `${donePct}%` }} />
+          </div>
+        )}
       </nav>
 
       <main className="max-w-3xl mx-auto px-6 py-8 space-y-6">
@@ -135,21 +169,36 @@ export default function CoursePage() {
           <p className="text-gray-400 text-sm">No chapters published yet.</p>
         )}
         {chapters.map((chapter) => (
-          <div key={chapter.id} className="bg-white dark:bg-[#1c1c2b] rounded-xl shadow-sm p-5">
-            <h2 className="font-semibold text-ink dark:text-gray-100 mb-3">{chapter.title}</h2>
+          <div key={chapter.id} className="bg-white dark:bg-[#1c1c2b] rounded-3xl shadow-sm p-5">
+            <h2 className="font-bold text-ink dark:text-gray-100 mb-3">{chapter.title}</h2>
             <div className="space-y-2">
-              {(resourcesByChapter[chapter.id] || []).map((res) => (
-                <button
-                  key={res.id}
-                  onClick={() => setActiveResource(res)}
-                  className="w-full text-left flex items-center gap-3 border dark:border-gray-700 rounded-lg px-3 py-2 hover:bg-gray-50 dark:hover:bg-[#25253a] text-sm"
-                >
-                  <span className="text-xs uppercase tracking-wide text-accent font-medium w-14">
-                    {res.type === "live" ? "🔴 Live" : res.type}
-                  </span>
-                  <span className="text-ink dark:text-gray-100">{res.title}</span>
-                </button>
-              ))}
+              {(resourcesByChapter[chapter.id] || []).map((res) => {
+                const done = completedIds.has(res.id);
+                return (
+                  <div
+                    key={res.id}
+                    onClick={() => setActiveResource(res)}
+                    className={`w-full text-left flex items-center gap-3 rounded-2xl px-3 py-2.5 text-sm cursor-pointer transition ${
+                      done
+                        ? "bg-brand-gradient-soft border border-accent/30"
+                        : "border dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-[#25253a]"
+                    }`}
+                  >
+                    <button
+                      onClick={(e) => toggleComplete(res.id, e)}
+                      className={`w-6 h-6 rounded-full flex items-center justify-center text-xs shrink-0 ${
+                        done ? "bg-brand-gradient text-white" : "border-2 dark:border-gray-500"
+                      }`}
+                    >
+                      {done ? "✓" : ""}
+                    </button>
+                    <span className="text-xs uppercase tracking-wide text-accent font-bold w-14 shrink-0">
+                      {res.type === "live" ? "🔴 Live" : res.type}
+                    </span>
+                    <span className="text-ink dark:text-gray-100">{res.title}</span>
+                  </div>
+                );
+              })}
             </div>
           </div>
         ))}
@@ -161,11 +210,11 @@ export default function CoursePage() {
           onClick={() => setActiveResource(null)}
         >
           <div
-            className="bg-white dark:bg-[#1c1c2b] rounded-xl w-full max-w-3xl max-h-[85vh] overflow-hidden flex flex-col"
+            className="bg-white dark:bg-[#1c1c2b] rounded-3xl w-full max-w-3xl max-h-[85vh] overflow-hidden flex flex-col"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex justify-between items-center px-4 py-3 border-b dark:border-gray-700">
-              <h3 className="font-medium text-ink dark:text-gray-100">{activeResource.title}</h3>
+              <h3 className="font-bold text-ink dark:text-gray-100">{activeResource.title}</h3>
               <button
                 onClick={() => setActiveResource(null)}
                 className="text-gray-400 dark:text-gray-400 text-sm"
@@ -190,7 +239,7 @@ export default function CoursePage() {
                     href={activeResource.url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="bg-accent text-white rounded-lg px-4 py-2 text-sm font-medium"
+                    className="bg-brand-gradient text-white rounded-full px-5 py-2 text-sm font-semibold"
                   >
                     Open Live Stream
                   </a>
