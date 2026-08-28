@@ -222,16 +222,17 @@ export default function AdminPage() {
               required
             />
             <select
-              value={resourceForm.type}
-              onChange={(e) => setResourceForm({ ...resourceForm, type: e.target.value })}
-              className="w-full border dark:border-gray-600 dark:bg-[#14141f] dark:text-gray-100 rounded-lg px-3 py-2 text-sm"
-            >
-              <option value="video">Video</option>
-              <option value="notes">Notes</option>
-              <option value="link">Link</option>
-              <option value="book">Book</option>
-              <option value="quiz">Quiz</option>
-            </select>
+  value={resourceForm.type}
+  onChange={(e) => setResourceForm({ ...resourceForm, type: e.target.value })}
+  className="w-full border dark:border-gray-600 dark:bg-[#14141f] dark:text-gray-100 rounded-lg px-3 py-2 text-sm"
+>
+  <option value="video">Video</option>
+  <option value="live">Live Stream</option>
+  <option value="notes">Notes</option>
+  <option value="link">Link</option>
+  <option value="book">Book</option>
+  <option value="quiz">Quiz</option>
+</select>
             <input
               placeholder="URL (YouTube/Vimeo/Drive/PDF link)"
               value={resourceForm.url}
