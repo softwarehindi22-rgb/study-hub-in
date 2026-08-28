@@ -6,3 +6,8 @@ body {
   background: #f7f7fb;
   color: #1a1a2e;
 }
+
+html.dark body {
+  background: #14141f;
+  color: #e8e8f0;
+}
