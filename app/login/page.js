@@ -34,21 +34,23 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4 dark:bg-[#14141f]">
-      <div className="w-full max-w-sm bg-white dark:bg-[#1c1c2b] rounded-2xl shadow-md p-8">
-        <h1 className="text-2xl font-bold text-ink dark:text-gray-100 mb-1">Study Hub</h1>
+    <div className="min-h-screen flex items-center justify-center px-4 dark:bg-[#0e0e17] bg-brand-gradient-soft">
+      <div className="w-full max-w-sm bg-white dark:bg-[#1c1c2b] rounded-3xl shadow-xl p-8">
+        <h1 className="text-3xl font-extrabold bg-brand-gradient bg-clip-text text-transparent mb-1">
+          Study Hub ✨
+        </h1>
         <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
-          {mode === "signin" ? "Sign in to continue" : "Create your account"}
+          {mode === "signin" ? "Welcome back 👋" : "Let's get you set up"}
         </p>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-3">
           {mode === "signup" && (
             <input
               type="text"
               placeholder="Full name"
               value={fullName}
               onChange={(e) => setFullName(e.target.value)}
-              className="w-full border dark:border-gray-600 dark:bg-[#14141f] dark:text-gray-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
+              className="w-full border dark:border-gray-600 dark:bg-[#14141f] dark:text-gray-100 rounded-2xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
               required
             />
           )}
@@ -57,7 +59,7 @@ export default function LoginPage() {
             placeholder="Email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="w-full border dark:border-gray-600 dark:bg-[#14141f] dark:text-gray-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
+            className="w-full border dark:border-gray-600 dark:bg-[#14141f] dark:text-gray-100 rounded-2xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
             required
           />
           <input
@@ -65,7 +67,7 @@ export default function LoginPage() {
             placeholder="Password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="w-full border dark:border-gray-600 dark:bg-[#14141f] dark:text-gray-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
+            className="w-full border dark:border-gray-600 dark:bg-[#14141f] dark:text-gray-100 rounded-2xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
             required
             minLength={6}
           />
@@ -73,7 +75,7 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-accent text-white rounded-lg py-2 text-sm font-medium disabled:opacity-50"
+            className="w-full bg-brand-gradient text-white rounded-2xl py-2.5 text-sm font-bold disabled:opacity-50 shadow-lg shadow-accent/30"
           >
             {loading ? "Please wait..." : mode === "signin" ? "Sign In" : "Sign Up"}
           </button>
@@ -81,7 +83,7 @@ export default function LoginPage() {
 
         <button
           onClick={() => setMode(mode === "signin" ? "signup" : "signin")}
-          className="text-sm text-accent mt-4 underline"
+          className="text-sm text-accent font-semibold mt-4 underline"
         >
           {mode === "signin" ? "Need an account? Sign up" : "Already have an account? Sign in"}
         </button>
