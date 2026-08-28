@@ -10,6 +10,7 @@ export default function HomePage() {
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [darkMode, setDarkMode] = useState(false);
+  const [progressByCourse, setProgressByCourse] = useState({});
 
   useEffect(() => {
     const isDark = document.documentElement.classList.contains("dark");
@@ -44,6 +45,58 @@ export default function HomePage() {
         .eq("status", "published")
         .order("created_at", { ascending: false });
       setCourses(courseData || []);
+
+      if (courseData && courseData.length > 0) {
+        const courseIds = courseData.map((c) => c.id);
+
+        const { data: chapterData } = await supabase
+          .from("chapters")
+          .select("id, course_id")
+          .in("course_id", courseIds)
+          .eq("status", "published");
+
+        const chapterIds = (chapterData || []).map((c) => c.id);
+        const chapterToCourse = {};
+        (chapterData || []).forEach((c) => (chapterToCourse[c.id] = c.course_id));
+
+        let resourceData = [];
+        if (chapterIds.length > 0) {
+          const { data } = await supabase
+            .from("resources")
+            .select("id, chapter_id")
+            .in("chapter_id", chapterIds)
+            .eq("status", "published");
+          resourceData = data || [];
+        }
+
+        const totalByCourse = {};
+        const resourceToCourse = {};
+        resourceData.forEach((r) => {
+          const courseId = chapterToCourse[r.chapter_id];
+          totalByCourse[courseId] = (totalByCourse[courseId] || 0) + 1;
+          resourceToCourse[r.id] = courseId;
+        });
+
+        const { data: progressData } = await supabase
+          .from("progress")
+          .select("resource_id")
+          .eq("user_id", user.id);
+
+        const doneByCourse = {};
+        (progressData || []).forEach((p) => {
+          const courseId = resourceToCourse[p.resource_id];
+          if (courseId) doneByCourse[courseId] = (doneByCourse[courseId] || 0) + 1;
+        });
+
+        const merged = {};
+        courseData.forEach((c) => {
+          const total = totalByCourse[c.id] || 0;
+          const done = doneByCourse[c.id] || 0;
+          merged[c.id] = { total, done, pct: total > 0 ? Math.round((done / total) * 100) : 0 };
+        });
+        setProgressByCourse(merged);
+      }
+
       setLoading(false);
     }
     load();
@@ -56,25 +109,30 @@ export default function HomePage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center text-gray-400 dark:bg-[#14141f]">
+      <div className="min-h-screen flex items-center justify-center text-gray-400 dark:bg-[#0e0e17]">
         Loading...
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen dark:bg-[#14141f]">
-      <nav className="bg-white dark:bg-[#1c1c2b] shadow-sm px-6 py-4 flex justify-between items-center">
-        <h1 className="text-xl font-bold text-ink dark:text-gray-100">Study Hub</h1>
-        <div className="flex items-center gap-4">
+    <div className="min-h-screen dark:bg-[#0e0e17]">
+      <nav className="bg-white/80 dark:bg-[#1c1c2b]/80 backdrop-blur-md shadow-sm px-6 py-4 flex justify-between items-center sticky top-0 z-10">
+        <h1 className="text-xl font-extrabold bg-brand-gradient bg-clip-text text-transparent">
+          Study Hub ✨
+        </h1>
+        <div className="flex items-center gap-3">
           <button
             onClick={toggleDarkMode}
-            className="text-sm text-gray-500 dark:text-gray-300 border rounded-full px-3 py-1 dark:border-gray-600"
+            className="text-sm text-gray-500 dark:text-gray-300 border dark:border-gray-600 rounded-full px-3 py-1"
           >
-            {darkMode ? "☀️ Light" : "🌙 Dark"}
+            {darkMode ? "☀️" : "🌙"}
           </button>
           {profile?.role === "admin" && (
-            <Link href="/admin" className="text-sm text-accent font-medium">
+            <Link
+              href="/admin"
+              className="text-sm bg-brand-gradient text-white font-semibold rounded-full px-4 py-1.5"
+            >
               Admin
             </Link>
           )}
@@ -87,31 +145,45 @@ export default function HomePage() {
       <main className="max-w-4xl mx-auto px-6 py-8">
         {profile?.full_name && (
           <div className="mb-6">
-            <h2 className="text-lg font-semibold text-ink dark:text-gray-100">
-              Welcome, {profile.full_name}
+            <h2 className="text-2xl font-extrabold text-ink dark:text-gray-100">
+              Hey, {profile.full_name.split(" ")[0]} 👋
             </h2>
-            <p className="text-sm text-gray-500 dark:text-gray-400">Continue your learning.</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400">Let's keep the streak going.</p>
           </div>
         )}
-        <h2 className="text-lg font-semibold text-ink dark:text-gray-100 mb-4">Your Courses</h2>
+        <h2 className="text-lg font-bold text-ink dark:text-gray-100 mb-4">Your Courses</h2>
         {courses.length === 0 ? (
           <p className="text-gray-400 text-sm">No courses published yet.</p>
         ) : (
           <div className="grid sm:grid-cols-2 gap-4">
-            {courses.map((course) => (
-              <Link
-                key={course.id}
-                href={`/courses/${course.slug}`}
-                className="block bg-white dark:bg-[#1c1c2b] rounded-xl shadow-sm p-5 hover:shadow-md transition"
-              >
-                <h3 className="font-semibold text-ink dark:text-gray-100">{course.title}</h3>
-                {course.description && (
-                  <p className="text-sm text-gray-500 dark:text-gray-400 mt-1 line-clamp-2">
-                    {course.description}
-                  </p>
-                )}
-              </Link>
-            ))}
+            {courses.map((course) => {
+              const prog = progressByCourse[course.id] || { total: 0, done: 0, pct: 0 };
+              return (
+                <Link
+                  key={course.id}
+                  href={`/courses/${course.slug}`}
+                  className="block bg-white dark:bg-[#1c1c2b] rounded-3xl shadow-sm hover:shadow-xl hover:-translate-y-0.5 transition-all p-5 border border-transparent hover:border-accent/30"
+                >
+                  <h3 className="font-bold text-ink dark:text-gray-100">{course.title}</h3>
+                  {course.description && (
+                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-1 line-clamp-2">
+                      {course.description}
+                    </p>
+                  )}
+                  <div className="mt-4">
+                    <div className="flex justify-between text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">
+                      <span>{prog.pct}% complete</span>
+                      <span>
+                        {prog.done}/{prog.total}
+                      </span>
+                    </div>
+                    <div className="progress-track h-2 w-full">
+                      <div className="progress-fill" style={{ width: `${prog.pct}%` }} />
+                    </div>
+                  </div>
+                </Link>
+              );
+            })}
           </div>
         )}
       </main>
