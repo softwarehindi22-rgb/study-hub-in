@@ -52,6 +52,7 @@ export default function CoursePage() {
   const [chapters, setChapters] = useState([]);
   const [resourcesByChapter, setResourcesByChapter] = useState({});
   const [activeResource, setActiveResource] = useState(null);
+  const [iframeLoading, setIframeLoading] = useState(false);
   const [completedIds, setCompletedIds] = useState(new Set());
   const [loading, setLoading] = useState(true);
 
@@ -129,6 +130,11 @@ export default function CoursePage() {
     }
   }
 
+  function openResource(res) {
+    setIframeLoading(true);
+    setActiveResource(res);
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center text-gray-400 dark:bg-[#0e0e17]">
@@ -177,7 +183,7 @@ export default function CoursePage() {
                 return (
                   <div
                     key={res.id}
-                    onClick={() => setActiveResource(res)}
+                    onClick={() => openResource(res)}
                     className={`w-full text-left flex items-center gap-3 rounded-2xl px-3 py-2.5 text-sm cursor-pointer transition ${
                       done
                         ? "bg-brand-gradient-soft border border-accent/30"
@@ -222,14 +228,23 @@ export default function CoursePage() {
                 Close
               </button>
             </div>
-            <div className="flex-1 bg-gray-100 dark:bg-[#0e0e17]">
+            <div className="flex-1 bg-gray-100 dark:bg-[#0e0e17] relative">
               {isEmbeddable(activeResource.url) ? (
-                <iframe
-                  src={toEmbedUrl(activeResource.url)}
-                  className="w-full h-[70vh]"
-                  allow="autoplay; fullscreen"
-                  allowFullScreen
-                />
+                <>
+                  {iframeLoading && (
+                    <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-gray-100 dark:bg-[#0e0e17]">
+                      <div className="w-10 h-10 rounded-full border-4 border-accent/20 border-t-accent animate-spin" />
+                      <p className="text-xs text-gray-400 dark:text-gray-500">Loading content...</p>
+                    </div>
+                  )}
+                  <iframe
+                    src={toEmbedUrl(activeResource.url)}
+                    className="w-full h-[70vh]"
+                    allow="autoplay; fullscreen"
+                    allowFullScreen
+                    onLoad={() => setIframeLoading(false)}
+                  />
+                </>
               ) : (
                 <div className="flex flex-col items-center justify-center h-[50vh] gap-4 px-6 text-center">
                   <p className="text-sm text-gray-500 dark:text-gray-400">
