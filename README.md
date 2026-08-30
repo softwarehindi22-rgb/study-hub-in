@@ -7,7 +7,7 @@ A learning platform: courses → chapters → resources (video lectures + notes 
 npm install
 npm run dev
 
-Visit http://localhost:3000
+
 
 .env.local is already filled in with your Supabase project URL and publishable key.
 
