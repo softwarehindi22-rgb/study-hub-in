@@ -155,29 +155,28 @@ export default function HomePage() {
         {courses.length === 0 ? (
           <p className="text-gray-400 text-sm">No courses published yet.</p>
         ) : (
-          <div className="grid sm:grid-cols-2 gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
             {courses.map((course) => {
               const prog = progressByCourse[course.id] || { total: 0, done: 0, pct: 0 };
               return (
                 <Link
                   key={course.id}
                   href={`/courses/${course.slug}`}
-                  className="block bg-white dark:bg-[#1c1c2b] rounded-3xl shadow-sm hover:shadow-xl hover:-translate-y-0.5 transition-all p-5 border border-transparent hover:border-accent/30"
+                  className="aspect-square flex flex-col justify-between bg-white dark:bg-[#1c1c2b] rounded-3xl shadow-sm hover:shadow-xl hover:-translate-y-0.5 transition-all p-4 border border-transparent hover:border-accent/30"
                 >
-                  <h3 className="font-bold text-ink dark:text-gray-100">{course.title}</h3>
-                  {course.description && (
-                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-1 line-clamp-2">
-                      {course.description}
-                    </p>
-                  )}
-                  <div className="mt-4">
-                    <div className="flex justify-between text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">
-                      <span>{prog.pct}% complete</span>
+                  <div className="flex-1 flex items-center justify-center text-center">
+                    <h3 className="font-bold text-ink dark:text-gray-100 text-sm leading-snug line-clamp-4">
+                      {course.title}
+                    </h3>
+                  </div>
+                  <div>
+                    <div className="flex justify-between text-[10px] font-semibold text-gray-500 dark:text-gray-400 mb-1">
+                      <span>{prog.pct}%</span>
                       <span>
                         {prog.done}/{prog.total}
                       </span>
                     </div>
-                    <div className="progress-track h-2 w-full">
+                    <div className="progress-track h-1.5 w-full">
                       <div className="progress-fill" style={{ width: `${prog.pct}%` }} />
                     </div>
                   </div>
